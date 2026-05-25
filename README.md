@@ -185,6 +185,36 @@ Point the **document root to `public/`** (best practice). See `nginx.conf.exampl
 
 If you cannot change the document root, the automatic `/public` prefix handles CSS, JS, and uploaded images.
 
+### Only homepage works — all other pages show 404
+
+**Symptom:** `/` loads fine, but `/admin`, `/products`, `/cart`, etc. return nginx 404.
+
+**Cause:** nginx only runs `index.php` for the homepage. It does not route other URLs to Laravel (`.htaccess` is ignored on nginx).
+
+**Quick test:** If `https://your-domain.com/index.php/admin` works but `https://your-domain.com/admin` does not, this is the issue.
+
+**Fix (choose one):**
+
+**Option A — Recommended (aaPanel / BT Panel):** Change site directory to `public/`:
+
+1. aaPanel → **Website** → your site → **Site Directory**
+2. Set to: `/www/wwwroot/ecommerce1.scriptbox.app/public`
+3. **Pseudo-static** → select **laravel** (or paste rewrite from `scriptbox.nginx.conf`)
+4. Remove `ASSET_URL` and `STORAGE_URL` from `.env`
+5. Run `php artisan config:clear`
+
+**Option B — Keep project root as document root:** Edit nginx config and add:
+
+```nginx
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}
+```
+
+Full rules (storage + assets + routes) are in **`scriptbox.nginx.conf`**.
+
+After saving, reload nginx and test `/admin` and `/products`.
+
 ### Deploy checklist
 
 1. Upload all files including `public/vendor/`, `public/themes/`, and `vendor/`
