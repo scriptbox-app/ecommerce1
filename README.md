@@ -347,9 +347,20 @@ chown -R $USER:$USER storage bootstrap/cache public/storage
   php artisan storage:link
   php artisan cms:publish:assets
   ```
+- Add to `.env` on the server:
+  ```env
+  ASSET_URL=https://ecommerce1.scriptbox.app/public
+  STORAGE_URL=https://ecommerce1.scriptbox.app/public/storage
+  ```
+- **Required nginx rules** (aaPanel / BT Panel): paste contents of `scriptbox.nginx.conf` into your site nginx config. This fixes:
+  - `/storage/*` image 404s
+  - `/ajax/*` route 404s
+  - `/admin` and other Laravel routes
 - Confirm `public/vendor/`, `public/themes/`, and `public/storage/` exist on the server
 - Set `APP_DEBUG=false` in production `.env`
 - **Best fix:** change document root to `public/` (see `nginx.conf.example`)
+
+> `ERR_BLOCKED_BY_CLIENT` on cookie-consent.js is your browser ad-blocker — not a server error.
 
 ### Database connection refused
 

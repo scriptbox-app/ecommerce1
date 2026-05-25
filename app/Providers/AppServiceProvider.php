@@ -19,21 +19,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->configureAssetUrlsForRootDocumentRoot();
+        $this->configureUrlsForRootDocumentRoot();
     }
 
     /**
      * When the web server document root is the project root (not public/),
-     * static files live under public/ but asset URLs omit that prefix.
-     * Apache .htaccess rewrites fix this locally; nginx ignores .htaccess,
-     * so we prefix asset and storage URLs with /public automatically.
+     * static files and storage live under public/ but URLs omit that prefix.
+     * Apache .htaccess rewrites fix this locally; nginx ignores .htaccess.
      */
-    protected function configureAssetUrlsForRootDocumentRoot(): void
+    protected function configureUrlsForRootDocumentRoot(): void
     {
-        if (config('app.asset_url')) {
-            return;
-        }
-
         if (PHP_SAPI === 'cli' || empty($_SERVER['DOCUMENT_ROOT'])) {
             return;
         }
@@ -43,11 +38,13 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $publicUrl = rtrim(config('app.url'), '/').'/public';
+        $storageUrl = env('STORAGE_URL', $publicUrl.'/storage');
 
-        config([
-            'app.asset_url' => $publicUrl,
-            'filesystems.disks.public.url' => env('STORAGE_URL', $publicUrl.'/storage'),
-        ]);
+        if (! config('app.asset_url')) {
+            config(['app.asset_url' => $publicUrl]);
+        }
+
+        config(['filesystems.disks.public.url' => $storageUrl]);
     }
 
     protected function documentRootRequiresPublicPrefix(): bool
