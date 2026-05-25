@@ -1,0 +1,49 @@
+# Nginx configuration when document root MUST stay at project root
+# (e.g. shared hosting where you cannot point docroot to public/)
+#
+# Preferred setup: set document root to /path/to/ecommerce1/public instead.
+# If that is not possible, the AppServiceProvider auto-prefixes asset URLs
+# with /public — no nginx changes required for CSS/JS/images.
+
+server {
+    listen 80;
+    server_name ecommerce1.scriptbox.app;
+    root /path/to/ecommerce1;
+    index index.php;
+
+    # Static assets inside public/
+    location ~* ^/public/(.+\.(css|js|jpg|jpeg|png|gif|ico|svg|webp|woff|woff2|ttf|eot|map))$ {
+        try_files /public/$1 =404;
+        expires 30d;
+        access_log off;
+    }
+
+    location /public/ {
+        try_files $uri $uri/ =404;
+    }
+
+    # Laravel routes via root index.php
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+
+# RECOMMENDED: point document root directly to public/
+#
+# server {
+#     root /path/to/ecommerce1/public;
+#     location / {
+#         try_files $uri $uri/ /index.php?$query_string;
+#     }
+#     location ~ \.php$ {
+#         fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+#         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+#         include fastcgi_params;
+#     }
+# }

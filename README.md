@@ -149,6 +149,56 @@ sudo systemctl restart apache2
 
 ---
 
+## Production Deployment (Nginx / Shared Hosting)
+
+Your server at **scriptbox.app** uses **nginx**, which ignores `.htaccess`. If the document root is the **project root** (not `public/`), CSS/JS/images return **404** because files live under `public/` but URLs point to `/themes/...`, `/vendor/...`, etc.
+
+### Automatic fix (included)
+
+`AppServiceProvider` detects when the document root equals the project root and automatically prefixes asset URLs with `/public`:
+
+- `/themes/shopwise/css/style.css` → `/public/themes/shopwise/css/style.css`
+- `/storage/general/logo.png` → `/public/storage/general/logo.png`
+
+After uploading the fix, run on the server:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+php artisan storage:link
+php artisan cms:publish:assets
+```
+
+### Production `.env` settings
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://ecommerce1.scriptbox.app
+```
+
+> Set `APP_DEBUG=false` on production to avoid Laravel Debugbar 404 errors.
+
+### Recommended server setup
+
+Point the **document root to `public/`** (best practice). See `nginx.conf.example` in the project root.
+
+If you cannot change the document root, the automatic `/public` prefix handles CSS, JS, and uploaded images.
+
+### Deploy checklist
+
+1. Upload all files including `public/vendor/`, `public/themes/`, and `vendor/`
+2. Run `composer install --no-dev --optimize-autoloader` on the server
+3. Copy `.env`, set `APP_URL`, database credentials, `APP_DEBUG=false`
+4. Run `php artisan key:generate` (if needed)
+5. Run `php artisan migrate --force`
+6. Run `php artisan storage:link`
+7. Run `php artisan cms:publish:assets`
+8. Run `php artisan config:clear && php artisan cache:clear`
+9. Set permissions: `chmod -R 775 storage bootstrap/cache`
+
+---
+
 ## Nginx Setup (Alternative)
 
 Point the web root to the `public/` directory:
@@ -253,6 +303,11 @@ ecommerce1/
 
 - Added `.env.example` with all required variables for local setup and the Botble installer
 
+### 5. Production CSS/JS 404 on nginx (scriptbox.app)
+
+- **Cause:** nginx ignores `.htaccess`; document root is project root, so `/themes/...` and `/vendor/...` are not found (files are under `public/`)
+- **Fix:** Auto-detect root document root in `AppServiceProvider` and prefix `ASSET_URL` and storage URLs with `/public`
+
 ---
 
 ## Troubleshooting
@@ -282,6 +337,19 @@ chown -R $USER:$USER storage bootstrap/cache public/storage
 - Ensure `mod_rewrite` is enabled
 - Confirm `AllowOverride All` is set in your Apache virtual host
 - Verify root `.htaccess` and root `index.php` exist
+
+### CSS/JS 404 on nginx / shared hosting (production)
+
+- **Cause:** nginx does not read `.htaccess`; static files are in `public/` but URLs omit `/public`
+- **Fix:** Deploy latest code (includes auto `/public` prefix), then run:
+  ```bash
+  php artisan config:clear
+  php artisan storage:link
+  php artisan cms:publish:assets
+  ```
+- Confirm `public/vendor/`, `public/themes/`, and `public/storage/` exist on the server
+- Set `APP_DEBUG=false` in production `.env`
+- **Best fix:** change document root to `public/` (see `nginx.conf.example`)
 
 ### Database connection refused
 
