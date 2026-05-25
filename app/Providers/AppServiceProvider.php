@@ -38,10 +38,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $documentRoot = realpath($_SERVER['DOCUMENT_ROOT']);
-        $basePath = realpath(base_path());
-
-        if (! $documentRoot || ! $basePath || $documentRoot !== $basePath) {
+        if (! $this->documentRootRequiresPublicPrefix()) {
             return;
         }
 
@@ -49,7 +46,28 @@ class AppServiceProvider extends ServiceProvider
 
         config([
             'app.asset_url' => $publicUrl,
-            'filesystems.disks.public.url' => $publicUrl.'/storage',
+            'filesystems.disks.public.url' => env('STORAGE_URL', $publicUrl.'/storage'),
         ]);
+    }
+
+    protected function documentRootRequiresPublicPrefix(): bool
+    {
+        $documentRoot = realpath($_SERVER['DOCUMENT_ROOT']);
+        $basePath = realpath(base_path());
+        $publicPath = realpath(public_path());
+
+        if (! $publicPath || ! is_dir($publicPath.'/themes')) {
+            return false;
+        }
+
+        if ($documentRoot && $basePath && $documentRoot === $basePath) {
+            return true;
+        }
+
+        if ($documentRoot && ! is_file($documentRoot.'/themes/shopwise/css/style.css')) {
+            return is_file($publicPath.'/themes/shopwise/css/style.css');
+        }
+
+        return false;
     }
 }
